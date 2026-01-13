@@ -1,0 +1,2 @@
+window_size,learning_rate,architecture,batch_size,epochs,num_layers,weight_decay,clip_grad,pct_start,model_type,avg_score,std_score,fold_scores,execution_time
+120,0.0001,"(256, 4, 0.15)",64,50,3,0.01,1.0,0.3,transformer,44.423916,10.995368,"[np.float32(35.725132), np.float32(40.485405), np.float32(38.241337), np.float32(63.243786)]",2516.23854637146

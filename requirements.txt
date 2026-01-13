@@ -1,5 +1,18 @@
-pandas
-matplotlib
-seaborn
-numpy
-scikit-learn
+# Core Data Science & Math
+numpy>=1.21.0
+pandas>=1.3.0
+matplotlib>=3.4.0
+scikit-learn>=1.0.0
+joblib>=1.1.0
+
+# Deep Learning (PyTorch)
+# Nota: Si raccomanda di installare la versione specifica per la tua versione CUDA
+torch>=2.0.0
+
+# Modelli specifici (xLSTM)
+xlstm
+
+# Utilità di sistema e compilazione
+# Necessario per torch.utils.cpp_extension.load
+ninja
+setuptools
