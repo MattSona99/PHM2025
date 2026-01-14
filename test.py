@@ -1,12 +1,87 @@
 import torch
 import pandas as pd
-import numpy as np
-import os
 import glob
-import inspect
 import joblib
-from src.preprocessing import Pipeline
+import os
+import inspect
+import torch.utils.cpp_extension
+# ==============================================================================
+#  1. ZONA DI RIPARAZIONE CUDA PER WINDOWS
+# ==============================================================================
 
+# Configurazione dell'ambiente di compilazione JIT (Just-In-Time) per estensioni CUDA.
+# Si rende necessaria la mappatura su drive virtuale Z: per aggirare le limitazioni
+# sulla lunghezza dei path in ambiente Windows durante il linking con NVCC.
+cuda_path = "Z:\\"
+if not os.path.exists(os.path.join(cuda_path, "bin", "nvcc.exe")):
+    print("ERRORE CRITICO: Il drive Z: non è montato.")
+    # Fallback o exit
+
+# Configurazione delle variabili d'ambiente per il compilatore MSVC host (cl.exe).
+# Si definiscono i flag di inclusione header e linking librerie per garantire
+# la compatibilità tra torch.utils.cpp_extension e il toolkit CUDA installato.
+path_to_cl = r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\cl.exe"
+os.environ["CUDA_HOME"] = cuda_path
+os.environ["CUDA_PATH"] = cuda_path
+os.environ["CC"] = path_to_cl
+os.environ["CXX"] = path_to_cl
+os.environ["MAX_JOBS"] = "1"
+os.environ["PATH"] = (
+        os.path.join(cuda_path, "bin") + ";" +
+        os.path.join(cuda_path, "include") + ";" +
+        os.path.join(cuda_path, "lib", "x64") + ";" +
+        os.environ["PATH"]
+)
+os.environ["CFLAGS"] = f"-I{cuda_path}include"
+os.environ["CXXFLAGS"] = f"-I{cuda_path}include"
+os.environ["DISTUTILS_USE_SDK"] = "1"
+
+original_load = torch.utils.cpp_extension.load
+
+# Override della funzione di caricamento estensioni per iniettare flag di compatibilità.
+# Vengono filtrati flag di ottimizzazione non supportati (es. -O3 su nvcc specifici)
+# e aggiunte definizioni per la gestione delle discrepanze di versione STL.
+def patched_load(*args, **kwargs):
+    if 'extra_cuda_cflags' in kwargs and kwargs['extra_cuda_cflags']:
+        new_flags = []
+        new_flags.append('-allow-unsupported-compiler')
+        new_flags.append('-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH')
+
+        for flag in kwargs['extra_cuda_cflags']:
+            if '-Xptxas' in flag and '-O3' in flag:
+                new_flags.append('-Xptxas')
+                new_flags.append('-O3')
+            elif flag.strip() == '-O3':
+                new_flags.append('-O3')
+            else:
+                new_flags.append(flag)
+        kwargs['extra_cuda_cflags'] = new_flags
+
+    if 'extra_ldflags' in kwargs and kwargs['extra_ldflags']:
+        new_ldflags = []
+        for flag in kwargs['extra_ldflags']:
+            if flag.startswith('-L'):
+                new_ldflags.append(f"/LIBPATH:{cuda_path}lib\\x64")
+            elif flag.startswith('-l'):
+                lib_name = flag[2:]
+                if lib_name == 'cublas':
+                    new_ldflags.append('cublas.lib')
+                elif lib_name == 'cudart':
+                    new_ldflags.append('cudart.lib')
+                else:
+                    new_ldflags.append(f"{lib_name}.lib")
+            else:
+                new_ldflags.append(flag)
+        kwargs['extra_ldflags'] = new_ldflags
+
+    return original_load(*args, **kwargs)
+
+
+torch.utils.cpp_extension.load = patched_load
+print("--- AMBIENTE CORRETTO E PATCH APPLICATA ---")
+
+
+from src.preprocessing import Pipeline
 # --- IMPORT CONFIGURAZIONI E MODELLI ---
 from src.configs import CONFIGS, TARGET_COLS
 from src.models import (
@@ -31,7 +106,7 @@ except ImportError:
 # Selezione dell'architettura del modello da sottoporre a test di inferenza.
 # Deve corrispondere all'architettura serializzata durante la fase di training completo (train_full_model).
 # Modelli supportati: 'transformer', 'xlstm', 'dlinear', 'dlinear_ensemble', 'xlstm_ensemble'
-MODEL_TO_TEST = 'transformer' 
+MODEL_TO_TEST = 'xlstm_ensemble'
 
 # Mapping dei puntatori alle classi per l'istanziazione dinamica dei modelli predittivi.
 MODEL_MAPPING = {
@@ -72,7 +147,7 @@ def get_inference_config(model_type):
         'model_path': os.path.join(base_dir, "final_model.pth"),
         'pipeline_path': os.path.join(base_dir, "final_pipeline.pkl"),
         
-        'output_file': f"data/results/{model_type}/submission_final.csv",
+        'output_file': f"data/results/{model_type}/submission.csv",
         'test_folder': 'data/raw/test/'
     }
 

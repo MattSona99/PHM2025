@@ -1,0 +1,2 @@
+window_size,learning_rate,architecture,batch_size,epochs,num_layers,weight_decay,clip_grad,pct_start,model_type,avg_score,std_score,fold_scores,execution_time
+50,0.0001,"(128, 4, 0.5)",128,50,2,0.001,1.0,0.2,xlstm_ensemble,38.54565,7.5638204,"[np.float32(25.752504), np.float32(43.786175), np.float32(40.177567), np.float32(44.46635)]",13645.666408777237
