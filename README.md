@@ -43,11 +43,12 @@ Viene utilizzata una **Asymmetric Huber Loss**. Questa funzione di costo penaliz
 ├── models/                  # Salvataggio pesi (.pth) e pipeline (.pkl)
 ├── src/
 |   ├── models/
-|   │   ├── models.py              # Init package per importazione modelli
+|   │   ├── init.py                # Init package per importazione modelli
 |   │   ├── layers.py              # Layer custom (Attention, Positional Encoding)
 |   │   ├── dlinear.py             # Implementazione DLinear
 |   │   ├── transformer.py         # Implementazione Transformer
-|   │   └── xlstm.py               # Implementazione xLSTM
+|   │   ├── xlstm.py               # Implementazione xLSTM
+|   |   └── ensembles.py           # Implementazione degli Ensembles
 │   ├── configs.py                 # Dizionari di configurazione iperparametri
 │   ├── feature_engineering.py     # Logica di dominio (fisica del motore)
 │   ├── preprocessing.py           # Pipeline di trasformazione dati
