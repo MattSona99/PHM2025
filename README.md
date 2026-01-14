@@ -1,7 +1,7 @@
-# Predictive Maintenance (PdM) Framework per Stima RUL
+# Modelli di Manutenzione Predittiva per Stima RUL
 
 ## 1. Panoramica del Progetto
-Questo repository ospita una pipeline completa di **Deep Learning** progettata per la **Manutenzione Predittiva (PdM)** di motori aeronautici. Il sistema analizza serie temporali multivariate  per stimare la Vita Residua Utile (**RUL - Remaining Useful Life**) di componenti critici, supportando strategie di manutenzione proattiva.
+Questo repository ospita una pipeline completa di **Deep Learning** progettata per la **Manutenzione Predittiva** di motori di aerei per la challenge "PHM North America 2025 Conference Data Challenge". Il sistema analizza serie temporali dei cicli di volo per stimare la Vita Residua Utile (**RUL - Remaining Useful Life**) di componenti critici, supportando strategie di manutenzione proattiva.
 
 Il framework è in grado di predire simultaneamente tre target di degradazione:
 1.  **HPC_SV:** Stato di salute del Compressore ad Alta Pressione.
@@ -37,18 +37,20 @@ Viene utilizzata una **Asymmetric Huber Loss**. Questa funzione di costo penaliz
 .
 ├── data/
 │   ├── raw/                 # File CSV di input (train/test)
-│   ├── processed/           # Artefatti intermedi
+│   ├── processed/           # Dati processati
+│   ├── temp/                # Artefatti intermedi
 │   └── results/             # Submission files e log di training
 ├── models/                  # Salvataggio pesi (.pth) e pipeline (.pkl)
 ├── src/
-│   ├── configs.py           # Dizionari di configurazione iperparametri
-│   ├── feature_engineering.py # Logica di dominio (fisica del motore)
-│   ├── layers.py            # Layer custom (Attention, Positional Encoding)
-│   ├── models.py            # Init package per importazione modelli
-│   ├── preprocessing.py     # Pipeline di trasformazione dati
-│   ├── dlinear.py           # Implementazione DLinear
-│   ├── transformer.py       # Implementazione Transformer
-│   └── xlstm.py             # Wrapper e check import xLSTM
+|   ├── models/
+|   │   ├── models.py              # Init package per importazione modelli
+|   │   ├── layers.py              # Layer custom (Attention, Positional Encoding)
+|   │   ├── dlinear.py             # Implementazione DLinear
+|   │   ├── transformer.py         # Implementazione Transformer
+|   │   └── xlstm.py               # Implementazione xLSTM
+│   ├── configs.py                 # Dizionari di configurazione iperparametri
+│   ├── feature_engineering.py     # Logica di dominio (fisica del motore)
+│   ├── preprocessing.py           # Pipeline di trasformazione dati
 ├── train.py                 # Script principale di addestramento
 ├── test.py                  # Script di inferenza e generazione output
 ├── requirements.txt         # Dipendenze Python
@@ -96,11 +98,10 @@ Il file di output sarà generato in `data/results/{model_name}/submission_final.
 
 ## 6. Metriche di Valutazione
 
-Le performance sono valutate tramite uno **Score Competizione Pesato**:
+Le performance sono valutate tramite uno **Score Competizione Pesato e Asimmetrico**:
 
-$$Score = \text{mean}(w(t) \cdot (y_{pred} - y_{true})^2)$$
-
-Dove il peso $w(t)$ cresce esponenzialmente man mano che il componente si avvicina al fine vita, privilegiando la precisione nelle fasi critiche.
+- Le penalità per "Late Predictions" sono più alte dalle "Early Predictions" per tutti e 3 i componenti;
+- Le penalità sono inoltre maggiori se l'errore viene commesso più vicino al momento effettivo dell'evento, rispetto a quando l'orizzonte di previsione è più ampio, misurato a partire dal valore reale dell'evento.
 
 ---
 **Licenza:** MIT
