@@ -1,4 +1,4 @@
-# Predictive Maintenance (PdM) Framework per Stima RUL
+# Modelli di Manutenzione Predittiva per Stima RUL
 
 ## 1. Panoramica del Progetto
 Questo repository ospita una pipeline completa di **Deep Learning** progettata per la **Manutenzione Predittiva** di motori di aerei per la challenge "PHM North America 2025 Conference Data Challenge". Il sistema analizza serie temporali dei cicli di volo per stimare la Vita Residua Utile (**RUL - Remaining Useful Life**) di componenti critici, supportando strategie di manutenzione proattiva.
