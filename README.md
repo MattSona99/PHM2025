@@ -98,11 +98,10 @@ Il file di output sarà generato in `data/results/{model_name}/submission_final.
 
 ## 6. Metriche di Valutazione
 
-Le performance sono valutate tramite uno **Score Competizione Pesato**:
+Le performance sono valutate tramite uno **Score Competizione Pesato e Asimmetrico**:
 
-$$Score = \text{mean}(w(t) \cdot (y_{pred} - y_{true})^2)$$
-
-Dove il peso $w(t)$ cresce esponenzialmente man mano che il componente si avvicina al fine vita, privilegiando la precisione nelle fasi critiche.
+- Le penalità per "Late Predictions" sono più alte dalle "Early Predictions" per tutti e 3 i componenti;
+- Le penalità sono inoltre maggiori se l'errore viene commesso più vicino al momento effettivo dell'evento, rispetto a quando l'orizzonte di previsione è più ampio, misurato a partire dal valore reale dell'evento.
 
 ---
 **Licenza:** MIT
