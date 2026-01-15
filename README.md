@@ -3,7 +3,7 @@
 ## 1. Panoramica del Progetto
 Questo repository ospita una pipeline completa di **Deep Learning** progettata per la **Manutenzione Predittiva** di motori di aerei per la challenge "PHM North America 2025 Conference Data Challenge". Il sistema analizza serie temporali dei cicli di volo per stimare la Vita Residua Utile (**RUL - Remaining Useful Life**) di componenti critici, supportando strategie di manutenzione proattiva.
 
-Il framework è in grado di predire simultaneamente tre target di degradazione:
+I modelli sono in grado di predire simultaneamente tre target di degradazione:
 1.  **HPC_SV:** Stato di salute del Compressore ad Alta Pressione.
 2.  **HPT_SV:** Stato di salute della Turbina ad Alta Pressione.
 3.  **WW:** Lavaggio del Compressore (Water-Wash).
@@ -43,11 +43,12 @@ Viene utilizzata una **Asymmetric Huber Loss**. Questa funzione di costo penaliz
 ├── models/                  # Salvataggio pesi (.pth) e pipeline (.pkl)
 ├── src/
 |   ├── models/
-|   │   ├── models.py              # Init package per importazione modelli
+|   │   ├── init.py                # Init package per importazione modelli
 |   │   ├── layers.py              # Layer custom (Attention, Positional Encoding)
 |   │   ├── dlinear.py             # Implementazione DLinear
 |   │   ├── transformer.py         # Implementazione Transformer
-|   │   └── xlstm.py               # Implementazione xLSTM
+|   │   ├── xlstm.py               # Implementazione xLSTM
+|   |   └── ensembles.py           # Implementazione degli Ensembles
 │   ├── configs.py                 # Dizionari di configurazione iperparametri
 │   ├── feature_engineering.py     # Logica di dominio (fisica del motore)
 │   ├── preprocessing.py           # Pipeline di trasformazione dati
@@ -94,7 +95,7 @@ Carica il modello finale e la pipeline di preprocessing per generare predizioni 
 ```bash
 python test.py
 ```
-Il file di output sarà generato in `data/results/{model_name}/submission_final.csv`.
+Il file di output sarà generato in `data/results/{model_name}/submission.csv`.
 
 ## 6. Metriche di Valutazione
 
