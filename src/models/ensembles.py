@@ -46,6 +46,8 @@ class Model_Ensemble_DLinear_Transformer(nn.Module):
             nn.Sigmoid() # Output vincolato in [0, 1] per combinazione convessa
         )
         
+        self._init_weights()
+        
     def forward(self, x_sens, x_esn, x_prof):
         # 1. Inferenza parallela sui rami esperti.
         # Si ottengono le stime indipendenti RUL dai due sottosistemi.
@@ -67,6 +69,14 @@ class Model_Ensemble_DLinear_Transformer(nn.Module):
         output = (gate * pred_dlinear) + ((1 - gate) * pred_trans)
         
         return output
+    
+    def _init_weights(self):
+        # Inizializzazione personalizzata per la rete di gating.
+        # Si mira a favorire inizialmente il modello DLinear (stabile)
+        last_gate_layer = self.gate_net[2]
+        
+        nn.init.constant_(last_gate_layer.weight, 2.0)
+        nn.init.xavier_uniform_(last_gate_layer.weight, gain=0.01)
     
 class Model_Ensemble_xLSTM_Transformer(nn.Module):
     """

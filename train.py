@@ -219,6 +219,10 @@ def train_single_fold(config, df_train, df_val, fold_idx):
     
     model = ModelClass(**valid_params).to(DEVICE)
     
+    # Compilazione JIT del modello per ottimizzazioni runtime (se supportato)
+    if sys.platform != "win32":
+        model = torch.compile(model)
+    
     # --- CONFIGURAZIONE OTTIMIZZATORE E REGOLARIZZAZIONE ---
     # Si recuperano i parametri di weight decay e gradient clipping per il controllo
     # della convergenza e la prevenzione dell'overfitting sui dati di sensore rumorosi.

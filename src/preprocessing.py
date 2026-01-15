@@ -12,12 +12,16 @@ class Pipeline:
                  windows_size=50,
                  feature_cols=None,
                  target_cols=['Cycles_to_HPC_SV', 'Cycles_to_HPT_SV', 'Cycles_to_WW'],
-                 meta_cols=['ESN', 'Operational_Profile']):
+                 meta_cols=['ESN', 'Operational_Profile'],
+                 cycle_col='Cycles_Since_New',
+                 snapshot_col='Snapshot'):
         
         self.window_size = windows_size
         self.feature_cols = feature_cols
         self.target_cols = target_cols
         self.meta_cols = meta_cols
+        self.cycle_col = cycle_col
+        self.snapshot_col = snapshot_col
         
         # Adozione di RobustScaler per le variabili di sensore al fine di mitigare
         # l'impatto di outlier e rumore di misura non gaussiano tipico della strumentazione di campo.
@@ -44,7 +48,7 @@ class Pipeline:
         if self.feature_cols is None:
             # 1. Definizione lista di esclusione per colonne strutturali e di fase di volo.
             exclude_exact = self.meta_cols + self.target_cols + \
-                            ['Snapshot', 'Flight_Phase', 'Cycles_Since_New', 'Cycles', 
+                            [self.snapshot_col, 'Flight_Phase', self.cycle_col, 'Cycles', 
                              'Flight_Progress', 'Phase_TAKEOFF', 'Phase_CLIMB', 'Phase_CRUISE']
             
             # 2. Esclusione basata su pattern matching per evitare Data Leakage
@@ -134,14 +138,39 @@ class Pipeline:
         for engine in unique_engines:
             # Ordinamento temporale rigoroso basato su Snapshot o Cicli progressivi.
             # Fondamentale per mantenere la causalità temporale dei dati.
-            if 'Snapshot' in data.columns:
-                df_eng = data[data['ESN'] == engine].sort_values('Snapshot')
+            df_eng = data[data['ESN'] == engine].copy()
+            
+            if self.cycle_col in df_eng.columns and self.snapshot_col in df_eng.columns:
+                cycles = df_eng[self.cycle_col].unique()
+                snapshots = range(1,9)
+                
+                idx_ideal = pd.MultiIndex.from_product(
+                    [cycles, snapshots],
+                    names=[self.cycle_col, self.snapshot_col]
+                )
+                
+                cols_static = ['ESN_Enc', 'Profile_Enc']
+                cols_dynamic = [c for c in df_eng.columns if c not in cols_static + [self.cycle_col, self.snapshot_col]]
+                
+                df_eng = df_eng.set_index([self.cycle_col, self.snapshot_col])
+                df_dynamic = df_eng[cols_dynamic].reindex(idx_ideal)
+                df_dynamic = df_dynamic.groupby(level=0).ffill().bfill()
+                df_dynamic = df_dynamic.ffill().fillna(0)
+                
+                df_clean = df_dynamic.reset_index()
+                
+                df_static_source = df_eng[cols_static].reset_index().drop_duplicates(subset=[self.cycle_col])
+                
+                df_clean = df_clean.merge(df_static_source, on=self.cycle_col, how='left').ffill()
+                
+                df_clean = df_clean.sort_values([self.cycle_col, self.snapshot_col])
+            
             else:
-                sort_c = 'Cycles_Since_New' if 'Cycles_Since_New' in data.columns else None
-                if sort_c:
-                      df_eng = data[data['ESN'] == engine].sort_values(sort_c)
+                sort_cols = [c for c in [self.cycle_col, 'time'] if c in df_eng.columns]
+                if sort_cols:
+                    df_clean = df_eng.sort_values(sort_cols)
                 else:
-                      df_eng = data[data['ESN'] == engine]
+                    df_clean = df_eng
 
             vals_sens = df_eng[self.feature_cols].values
             vals_esn = df_eng['ESN_Enc'].values

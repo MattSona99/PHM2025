@@ -47,11 +47,11 @@ CONFIGS = {
     'dlinear_ensemble': {
         'window_size': [120],
         'learning_rate': [1e-4],
-        'architecture': [(128, 4, 0.5)], 
+        'architecture': [(64, 4, 0.5)], 
         'batch_size': [128],
-        'epochs': [60],
-        'num_layers': [2],
-        'weight_decay': [1e-2],
+        'epochs': [30],
+        'num_layers': [1],
+        'weight_decay': [0.1],
         'clip_grad': [1.0],
         'pct_start': [0.3]
     },
