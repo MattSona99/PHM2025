@@ -106,7 +106,7 @@ except ImportError:
 # Selezione dell'architettura del modello da sottoporre a test di inferenza.
 # Deve corrispondere all'architettura serializzata durante la fase di training completo (train_full_model).
 # Modelli supportati: 'transformer', 'xlstm', 'dlinear', 'dlinear_ensemble', 'xlstm_ensemble'
-MODEL_TO_TEST = 'xlstm_ensemble'
+MODEL_TO_TEST = 'dlinear_ensemble'
 
 # Mapping dei puntatori alle classi per l'istanziazione dinamica dei modelli predittivi.
 MODEL_MAPPING = {

@@ -7,10 +7,10 @@ CONFIGS = {
     'transformer': {
         'window_size': [120],
         'learning_rate': [0.0001],
-        'architecture': [(256, 4, 0.15)], # (Hidden, Heads, Dropout)
+        'architecture': [(128, 4, 0.15)], # (Hidden, Heads, Dropout)
         'batch_size': [64],
-        'epochs': [50],
-        'num_layers': [3],
+        'epochs': [30],
+        'num_layers': [2],
         'weight_decay': [1e-2],
         'clip_grad': [1.0],
         'pct_start': [0.3]
