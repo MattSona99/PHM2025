@@ -158,11 +158,13 @@ class Pipeline:
                 df_dynamic = df_dynamic.ffill().fillna(0)
                 
                 df_clean = df_dynamic.reset_index()
-                
+
                 df_static_source = df_eng[cols_static].reset_index().drop_duplicates(subset=[self.cycle_col])
-                
+
+                df_static_source = df_static_source[[self.cycle_col] + cols_static]
+
                 df_clean = df_clean.merge(df_static_source, on=self.cycle_col, how='left').ffill()
-                
+
                 df_clean = df_clean.sort_values([self.cycle_col, self.snapshot_col])
             
             else:
