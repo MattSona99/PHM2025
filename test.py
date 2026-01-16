@@ -250,16 +250,19 @@ def process_batch():
             import traceback
             traceback.print_exc()
 
-    # E. Esportazione
+# E. Esportazione risultati finali
     if all_results:
         os.makedirs(os.path.dirname(cfg['output_file']), exist_ok=True)
         df_res = pd.DataFrame(all_results).sort_values('file')
         
-        df_res = df_res[['file', 'Cycles_to_HPC_SV', 'Cycles_to_HPT_SV', 'Cycles_to_WW']]
+        # Riordino colonne per submission
+        df_res = df_res[['file', 'Cycles_to_WW', 'Cycles_to_HPC_SV', 'Cycles_to_HPT_SV']]
+        # ---------------------------------------
         
         df_res.to_csv(cfg['output_file'], index=False)
         print(f"\n--- SUCCESS ---")
         print(f"Submission generata in: {cfg['output_file']}")
+        print("Colonne:", list(df_res.columns))
     else:
         print("\n--- NESSUN RISULTATO GENERATO ---")
 
