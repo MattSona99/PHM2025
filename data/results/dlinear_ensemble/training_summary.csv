@@ -1,2 +1,2 @@
 window_size,learning_rate,architecture,batch_size,epochs,num_layers,weight_decay,clip_grad,pct_start,model_type,avg_score,std_score,fold_scores,execution_time
-120,0.0001,"(64, 4, 0.5)",128,30,1,0.1,1.0,0.3,dlinear_ensemble,30.476868,3.0104942,"[np.float32(26.61808), np.float32(30.0799), np.float32(30.140116), np.float32(35.06937)]",314.04914259910583
+120,0.0001,"(64, 4, 0.5)",128,30,1,0.1,1.0,0.3,dlinear_ensemble,35.663273,7.2471995,"[np.float32(25.331038), np.float32(36.73975), np.float32(34.844177), np.float32(45.738132)]",300.12508177757263

@@ -27,8 +27,8 @@ class Model_Transformer(nn.Module):
         nhead=4,
         num_layers=2,
         dropout=0.2,
-        learnable_pe=False,
-        use_multihead_pooling=False,
+        learnable_pe=True,
+        use_multihead_pooling=True,
         pooling_heads=4,
         **kwargs  # Parametri addizionali non pertinenti alla struttura del grafo computazionale
     ):
