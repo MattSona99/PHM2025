@@ -83,7 +83,7 @@ MODEL_TO_TEST = 'dlinear_ensemble'
 # === MODALITÀ DICONFIGURAZIONE ===
 # 'test' -> Cartella data/raw/test/ -> Output: submission.csv
 # 'val'  -> Cartella data/raw/val/  -> Output: validation_submission.csv
-INFERENCE_MODE = 'val' 
+INFERENCE_MODE = 'test' 
 # =====================================
 
 MODEL_MAPPING = {
@@ -238,7 +238,27 @@ def process_batch():
 
     if all_results:
         os.makedirs(os.path.dirname(cfg['output_file']), exist_ok=True)
-        df_res = pd.DataFrame(all_results).sort_values('file')
+        df_res = pd.DataFrame(all_results)
+        
+        # --- MODIFICA PER ORDINAMENTO CORRETTO (NATURALE/NUMERICO) ---
+        try:
+            # 1. Creiamo una colonna temporanea estraendo il numero dopo l'underscore (es. test_12 -> 12)
+            # Questo garantisce che test_2 venga PRIMA di test_10
+            df_res['sort_id'] = df_res['file'].apply(lambda x: int(x.split('_')[-1]) if '_' in x else 0)
+            
+            # 2. Ordiniamo in base al numero estratto
+            df_res = df_res.sort_values('sort_id')
+            
+            # 3. Rimuoviamo la colonna temporanea
+            df_res.drop(columns=['sort_id'], inplace=True)
+            print("--- Ordinamento Numerico Applicato (test_0, test_1, test_2...) ---")
+            
+        except Exception as e:
+            # Fallback se i nomi dei file non sono nel formato test_X
+            print(f"Attenzione: Impossibile ordinare numericamente ({e}). Uso ordinamento alfabetico standard.")
+            df_res = df_res.sort_values('file')
+        # -------------------------------------------------------------
+
         df_res = df_res[['file', 'Cycles_to_WW', 'Cycles_to_HPC_SV', 'Cycles_to_HPT_SV']]
         
         df_res.to_csv(cfg['output_file'], index=False)

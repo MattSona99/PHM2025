@@ -434,7 +434,7 @@ def main():
     # --- SELEZIONE MODELLI DA ESEGUIRE ---
     # Selezione dell'architettura target per la campagna sperimentale.
     # Modelli supportati: 'transformer', 'xlstm', 'dlinear', 'dlinear_ensemble', 'xlstm_ensemble'
-    MODELS_TO_RUN = ['dlinear_ensemble']
+    MODELS_TO_RUN = ['dlinear']
     
     experiment_counter = 1
     
