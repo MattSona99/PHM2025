@@ -7,15 +7,13 @@ from .layers import (
     MultiHeadAttentionPooling
 )
 
-
 class Model_Transformer(nn.Module):
     """
     Implementazione di un'architettura basata su Transformer Encoder per l'analisi 
     di serie temporali multivariate. Il modello sfrutta il meccanismo di Self-Attention 
     per catturare dipendenze a lungo termine e relazioni non lineari nei dati di telemetria, 
     prescindendo dalla distanza temporale tra gli eventi.
-    """
-    
+    """ 
     def __init__(
         self, 
         n_features,
@@ -30,24 +28,24 @@ class Model_Transformer(nn.Module):
         learnable_pe=True,
         use_multihead_pooling=True,
         pooling_heads=4,
-        **kwargs  # Parametri addizionali non pertinenti alla struttura del grafo computazionale
+        **kwargs
     ):
         super(Model_Transformer, self).__init__()
         
-        # Validazione dei vincoli architetturali per Multi-Head Attention.
+        # Validazione
         assert hidden_size % nhead == 0, \
             f"Hidden size ({hidden_size}) deve essere divisibile per nhead ({nhead})"
         
-        # Controllo adattivo sulla dimensionalità degli embedding.
-        # Si garantisce una capacità rappresentativa minima per evitare colli di bottiglia informativi.
         if emb_dim < max(8, hidden_size // 32):
             emb_dim = max(8, hidden_size // 32)
-            print(f"   [Transformer] Emb_dim aumentato automaticamente a {emb_dim}")
         
         self.d_model = hidden_size
         self.hidden_size = hidden_size
         self.dropout_rate = dropout
-        
+
+        # ========== INPUT NORMALIZATION ==========
+        self.input_norm = nn.InstanceNorm1d(n_features)
+
         # ========== EMBEDDINGS ==========
         # Proiezione di variabili categoriche (ESN, Profilo) in uno spazio vettoriale denso.
         # +1 negli indici gestisce il token OOV (Out-Of-Vocabulary) o padding.
@@ -68,15 +66,11 @@ class Model_Transformer(nn.Module):
         # permutation-invariant del meccanismo di self-attention.
         if learnable_pe:
             self.pos_encoder = LearnablePositionalEncoding(
-                hidden_size, 
-                max_len=5000, 
-                dropout=dropout
+                hidden_size, max_len=5000, dropout=dropout
             )
         else:
             self.pos_encoder = PositionalEncoding(
-                hidden_size, 
-                max_len=5000, 
-                dropout=dropout
+                hidden_size, max_len=5000, dropout=dropout
             )
         
         # ========== TRANSFORMER ENCODER ==========
@@ -129,7 +123,7 @@ class Model_Transformer(nn.Module):
             nn.Linear(64, n_targets),
             nn.Softplus()
         )
-        
+
         # Inizializzazione controllata dei parametri
         self._init_weights()
 
@@ -146,23 +140,22 @@ class Model_Transformer(nn.Module):
                     nn.init.xavier_normal_(module.weight, gain=0.5)
                 else:
                     nn.init.xavier_uniform_(module.weight)
-                
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
-                    
             elif isinstance(module, nn.Embedding):
                 # Embedding inizializzati con distribuzione normale a bassa varianza
                 nn.init.normal_(module.weight, mean=0, std=0.02)
-                
             elif isinstance(module, nn.LayerNorm):
                 nn.init.constant_(module.bias, 0)
                 nn.init.constant_(module.weight, 1.0)
 
     def forward(self, x_sens, x_esn, x_prof, padding_mask=None, return_features=False):
-        """
-        Definizione del flusso computazionale (Forward Pass).
-        """
         batch_size, seq_len, _ = x_sens.size()
+        
+        # Input shape: [Batch, Seq, Feat] -> Transpose per InstanceNorm -> [Batch, Feat, Seq]
+        x_sens_transposed = x_sens.transpose(1, 2)
+        x_sens_norm = self.input_norm(x_sens_transposed)
+        x_sens = x_sens_norm.transpose(1, 2)
         
         # ========== EMBEDDING ==========
         # Espansione temporale degli embedding statici per allineamento con la serie temporale
@@ -194,7 +187,6 @@ class Model_Transformer(nn.Module):
         
         # ========== PREDICTION HEAD ==========
         output = self.head(x_pooled)
-        
         return output
 
     def get_attention_weights(self, x_sens, x_esn, x_prof, padding_mask=None):
@@ -205,22 +197,20 @@ class Model_Transformer(nn.Module):
         """
         batch_size, seq_len, _ = x_sens.size()
         
+        x_sens_transposed = x_sens.transpose(1, 2)
+        x_sens = self.input_norm(x_sens_transposed).transpose(1, 2)
+
         vec_esn = self.emb_esn(x_esn).unsqueeze(1).expand(-1, seq_len, -1)
         vec_prof = self.emb_prof(x_prof).unsqueeze(1).expand(-1, seq_len, -1)
-        
         x = torch.cat((x_sens, vec_esn, vec_prof), dim=2)
+        
         x = self.input_projection(x)
         x = self.pos_encoder(x)
-        
         x = self.transformer_encoder(x, src_key_padding_mask=padding_mask)
         
         # Calcolo manuale degli score di attenzione dall'ultimo layer di pooling
         x_norm = self.pooling.layer_norm(x)
         scores = self.pooling.attention(x_norm).squeeze(-1)
-        
         if padding_mask is not None:
             scores = scores.masked_fill(padding_mask, float('-inf'))
-        
-        attention_weights = torch.softmax(scores, dim=1)
-        
-        return attention_weights
+        return torch.softmax(scores, dim=1)

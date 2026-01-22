@@ -32,12 +32,12 @@ CONFIGS = {
     # --- DLinear ---
     'dlinear': {
         'window_size': [120],
-        'learning_rate': [0.005],
+        'learning_rate': [0.005, 0.001],
         'architecture': [(0, 0, 0.1)],
-        'batch_size': [64],
+        'batch_size': [64, 128],
         'epochs': [50],
-        'num_layers': [1],
-        'weight_decay': [1e-4],
+        'num_layers': [1, 2],
+        'weight_decay': [1e-4, 5e-3],
         'clip_grad': [5.0],
         'pct_start': [0.1]
     },

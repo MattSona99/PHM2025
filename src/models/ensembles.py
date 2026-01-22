@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .transformer import Model_Transformer
 from .xlstm import Model_xLSTM
+from .dlinear import Model_DLinear
 
 class Model_Ensemble_DLinear_Transformer(nn.Module):
     """
@@ -39,9 +40,13 @@ class Model_Ensemble_DLinear_Transformer(nn.Module):
         # Modulo leggero per la stima dinamica dei coefficienti di miscelazione.
         # La rete valuta il contesto operativo medio (statistiche globali della finestra)
         # per assegnare maggiore autorità al modello ritenuto più affidabile per lo specifico regime.
+        self.gate_norm = nn.InstanceNorm1d(n_features)
+        
         self.gate_net = nn.Sequential(
             nn.Linear(n_features, 64),
+            nn.LayerNorm(64),
             nn.ReLU(),
+            nn.Dropout(0.1),
             nn.Linear(64, n_targets), # Un peso di confidenza indipendente per ogni target (HPC, HPT, WW)
             nn.Sigmoid() # Output vincolato in [0, 1] per combinazione convessa
         )
@@ -57,26 +62,29 @@ class Model_Ensemble_DLinear_Transformer(nn.Module):
         # 2. Calcolo del vettore di contesto per il Gating.
         # Si collassa la dimensione temporale calcolando la media per ottenere 
         # un'impronta statica del punto operativo corrente.
-        x_mean = x_sens.mean(dim=1) # [batch, n_features]
+        x_sens_transposed = x_sens.transpose(1, 2)
+        x_norm = self.gate_norm(x_sens_transposed).transpose(1, 2)
+        
+        # Calcoliamo la media sulle feature normalizzate
+        x_mean = x_norm.mean(dim=1) # [batch, n_features]
         
         # 3. Determinazione dei pesi di fusione.
-        gate = self.gate_net(x_mean) # [batch, n_targets]
+        gate = self.gate_net(x_mean) # [batch, n_targets] (valori tra 0 e 1)
         
-        # 4. Fusione Pesata Adattiva (Adaptive Weighted Averaging).
-        # Output = (Weight * Stable_Model) + ((1-Weight) * Complex_Model).
-        # Il sistema apprende autonomamente a "fidarsi" del DLinear in regimi stabili
-        # e del Transformer in regimi altamente dinamici o rumorosi.
+        # 4. Fusione
+        # Se gate -> 1, favorisce DLinear. Se gate -> 0, favorisce Transformer.
         output = (gate * pred_dlinear) + ((1 - gate) * pred_trans)
         
         return output
     
     def _init_weights(self):
-        # Inizializzazione personalizzata per la rete di gating.
-        # Si mira a favorire inizialmente il modello DLinear (stabile)
-        last_gate_layer = self.gate_net[2]
+        # Inizializzazione che favorisce leggermente il DLinear all'inizio (Bias=2.0 -> Sigmoid(~0.88))
+        # Questo serve a partire da una soluzione stabile e lasciare che il Transformer 
+        # guadagni "fiducia" solo se riduce davvero la loss.
+        last_gate_layer = self.gate_net[4]
         
-        nn.init.constant_(last_gate_layer.weight, 2.0)
         nn.init.xavier_uniform_(last_gate_layer.weight, gain=0.01)
+        nn.init.constant_(last_gate_layer.bias, 2.0) 
     
 class Model_Ensemble_xLSTM_Transformer(nn.Module):
     """

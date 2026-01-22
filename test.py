@@ -83,7 +83,7 @@ MODEL_TO_TEST = 'dlinear_ensemble'
 # === MODALITÀ DICONFIGURAZIONE ===
 # 'test' -> Cartella data/raw/test/ -> Output: submission.csv
 # 'val'  -> Cartella data/raw/val/  -> Output: validation_submission.csv
-INFERENCE_MODE = 'test' 
+INFERENCE_MODE = 'val' 
 # =====================================
 
 MODEL_MAPPING = {
